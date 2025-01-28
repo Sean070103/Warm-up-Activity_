@@ -1,0 +1,41 @@
+/* General Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Arial", sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #1c1c1c; /* Dark background */
+  color: #fff; /* Light text */
+}
+
+/* Container */
+.container {
+  text-align: center;
+}
+
+/* Button Styles */
+button {
+  padding: 15px 30px;
+  font-size: 16px;
+  color: #fff;
+  background-color: transparent;
+  border: 2px solid #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+  background-color: #fff;
+  color: #1c1c1c;
+}
+
+/* Status Text */
+#status {
+  margin-top: 20px;
+  font-size: 14px;
+  word-wrap: break-word; /* Handle long text properly */
+}
