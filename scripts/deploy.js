@@ -1,18 +1,18 @@
-// scripts/deploy.js
-const { ethers } = require("hardhat");
-
 async function main() {
-  // Get the contract factory
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", deployer.address);
+
   const MyToken = await ethers.getContractFactory("MyToken");
-
-  // Deploy the contract
   const myToken = await MyToken.deploy();
+  await myToken.deployed();
+  console.log("MyToken deployed to:", myToken.address);
 
-  // Output the contract address
-  console.log("MyToken deployed to:", myToken.target);
+  const MyNFT = await ethers.getContractFactory("MyNFT");
+  const myNFT = await MyNFT.deploy();
+  await myNFT.deployed();
+  console.log("MyNFT deployed to:", myNFT.address);
 }
 
-// Run the deployment script
 main()
   .then(() => process.exit(0))
   .catch((error) => {
