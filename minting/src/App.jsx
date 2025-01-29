@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import "./App.css";
-import NFTjson from "../../artifacts/contracts/MyNFT.sol/NFT.json/";
+import NFTjson from "../../artifacts/contracts/MyNFT.sol/NFT.json";
 import MYTOKEN from "../../artifacts/contracts/MyToken.sol/MyToken.json";
 
-// Replace with your smart contract's address and ABI
-const CONTRACT_ADDRESS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
-
+const CONTRACT_ADDRESS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"; // Replace with your NFT contract address
 const PAYMENT_TOKEN_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"; // Replace with your ERC20 token address
 const MINT_PRICE = ethers.parseEther("100"); // Replace with your mint price
 
@@ -16,6 +14,7 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [chainId, setChainId] = useState(null);
 
+  // Connect wallet
   const connectWallet = async () => {
     try {
       if (!window.ethereum) {
@@ -39,7 +38,7 @@ export default function App() {
       window.ethereum.on("accountsChanged", (newAccounts) => {
         setAccount(newAccounts[0]);
         if (!newAccounts.length) {
-          setConnected(true);
+          setConnected(false);
         }
       });
 
@@ -47,27 +46,22 @@ export default function App() {
         setChainId(parseInt(newChainId, 16));
         window.location.reload();
       });
-
-      // Automatically mint token upon connection
-      if (await networkCheck()) {
-        await mintToken();
-      }
     } catch (err) {
       console.error("Failed to connect wallet:", err);
     }
   };
 
+  // Check network
   const networkCheck = async () => {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const network = await provider.getNetwork();
-
-    if (network.chainId === 31337) {
-      setMintStatus("Please switch to a supported network (e.g., Rinkeby).");
+    if (chainId !== 31337) {
+      // Replace with your desired chain ID
+      setMintStatus("Please switch to a supported network.");
       return false;
     }
     return true;
   };
 
+  // Mint token
   const mintToken = async () => {
     if (!connected || !account) {
       setMintStatus("Please connect your wallet first.");
@@ -82,56 +76,27 @@ export default function App() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        NFTjson.abi,
-        signer
-      );
-
-      console.log(MYTOKEN.abi);
-      console.log(NFTjson.abi);
-
-      // Initialize the payment token contract with proper ABI
+      // Handle ERC20 token approval
       const paymentToken = new ethers.Contract(
         PAYMENT_TOKEN_ADDRESS,
         MYTOKEN.abi,
         signer
       );
-
-      // Check current allowance
-      const currentAllowance = await paymentToken.allowance(
-        await signer.getAddress(),
-        CONTRACT_ADDRESS
+      const txApprove = await paymentToken.approve(
+        CONTRACT_ADDRESS,
+        MINT_PRICE.toString()
       );
+      await txApprove.wait();
 
-      // Check if we need to approve
-      if (currentAllowance.lt(MINT_PRICE)) {
-        console.log("Approving token spend...");
-        const txApprove = await paymentToken.approve(
-          CONTRACT_ADDRESS,
-          MINT_PRICE.toString()
-        );
-
-        // Wait for approval transaction to confirm
-        const receipt = await txApprove.wait();
-        console.log("Approval confirmed:", receipt.transactionHash);
-
-        // Verify the new allowance
-        const newAllowance = await paymentToken.allowance(
-          await signer.getAddress(),
-          CONTRACT_ADDRESS
-        );
-
-        if (newAllowance.lt(MINT_PRICE)) {
-          throw new Error("Approval failed - allowance not increased");
-        }
-      } else {
-        console.log("Sufficient allowance already exists");
-      }
-
+      // Mint NFT
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        NFTjson.abi,
+        signer
+      );
       const txMint = await contract.mintWithPayment(account, 1); // Using a fixed tokenId for example
       setMintStatus("Transaction submitted. Waiting for confirmation...");
-      await txMint.wait(); // Wait for the transaction confirmation
+      await txMint.wait();
       setMintStatus("Minting successful!");
     } catch (err) {
       console.error("Minting failed:", err);
@@ -139,31 +104,29 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    // Automatically connect wallet on page load
-    if (!connected) {
-      connectWallet();
-    }
-  }, [connected]);
-
   return (
-    <div className="p-4 bg-emerald-500">
-      <button
-        className="px-4 py-2 m-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        onClick={connectWallet}
-      >
-        Connect Wallet
-      </button>
-
-      {connected && (
-        <div className="mt-4">
-          <p className="mb-2">Connected chain: {chainId}</p>
-          <p className="mb-4">Connected account: {account}</p>
-
-          {mintStatus && (
-            <p className="mt-4 p-2 bg-gray-100 rounded">{mintStatus}</p>
-          )}
+    <div className="p-4">
+      {!connected ? (
+        <button
+          className="px-4 py-2 m-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          onClick={connectWallet}
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <div>
+          <p className="mb-2">Connected account: {account}</p>
+          <button
+            className="px-4 py-2 m-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            onClick={mintToken}
+          >
+            Mint Token
+          </button>
         </div>
+      )}
+
+      {mintStatus && (
+        <p className="mt-4 p-2 bg-gray-100 rounded">{mintStatus}</p>
       )}
     </div>
   );
